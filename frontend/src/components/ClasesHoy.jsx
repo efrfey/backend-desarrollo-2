@@ -1,105 +1,94 @@
-import React, { useState } from "react";
-import "./ClasesHoy.css";
+import express from "express";
+import Clase from "../models/Clase.js";
 
-const ClasesHoy = () => {
-  const [docenteId, setDocenteId] = useState("");
-  const [clases, setClases] = useState([]);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState("");
+const router = express.Router();
 
-  // 🔍 Buscar clases del docente
-  const buscarClases = async () => {
-    if (!docenteId.trim()) {
-      setError("⚠️ Ingresa la cédula o ID del docente");
-      return;
-    }
-
-    setCargando(true);
-    setError("");
-    setClases([]);
-
-    try {
-const respuesta = await fetch("http://localhost:4000/api/clases");
-
-
-
-      if (!respuesta.ok) {
-        throw new Error("Error al conectar con el servidor");
-      }
-
-      const data = await respuesta.json();
-
-      if (Array.isArray(data) && data.length > 0) {
-        setClases(data);
-      } else {
-        setError("No se encontraron clases para este docente hoy.");
-      }
-    } catch (err) {
-      console.error("Error cargando clases:", err);
-      setError("❌ No se pudo conectar con el servidor. Revisa si el backend está activo.");
-    } finally {
-      setCargando(false);
-    }
-  };
-
-  return (
-    <div className="clases-container">
-      <h2>📚 Registro de Clases de Hoy</h2>
-
-      <div className="busqueda">
-        <input
-          type="text"
-          placeholder="Ingrese la cédula del docente"
-          value={docenteId}
-          onChange={(e) => setDocenteId(e.target.value)}
-        />
-        <button onClick={buscarClases} disabled={cargando}>
-          {cargando ? "Buscando..." : "Buscar"}
-        </button>
-      </div>
-
-      {error && <p className="error">{error}</p>}
-
-      {!error && !cargando && clases.length > 0 && (
-        <table className="tabla-clases">
-          <thead>
-            <tr>
-              <th>Curso</th>
-              <th>Hora</th>
-              <th>Estado</th>
-              <th>Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clases.map((clase) => (
-              <tr key={clase._id}>
-                <td>{clase.curso}</td>
-                <td>{clase.hora}</td>
-                <td
-                  style={{
-                    color:
-                      clase.estado === "Activa"
-                        ? "orange"
-                        : clase.estado === "Inactiva"
-                        ? "gray"
-                        : "green",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {clase.estado}
-                </td>
-                <td>{new Date(clase.fecha).toLocaleDateString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {!error && !cargando && clases.length === 0 && (
-        <p>No hay clases cargadas todavía.</p>
-      )}
-    </div>
-  );
+// 🔹 Simulando clases locales (por si Mongo falla)
+let clasesPorDocente = {
+  "12345": [
+    { id: 1, curso: "Matemáticas", hora: "08:00 AM", estado: "Activa", fecha: new Date() },
+    { id: 2, curso: "Lenguaje", hora: "10:00 AM", estado: "Inactiva", fecha: new Date() },
+  ],
+  "99999": [
+    { id: 3, curso: "Historia", hora: "07:00 AM", estado: "Activa", fecha: new Date() },
+    { id: 4, curso: "Inglés", hora: "09:00 AM", estado: "Activa", fecha: new Date() },
+  ],
 };
 
-export default ClasesHoy;
+// ✅ Ruta nueva: Prueba de conexión a MongoDB
+router.get("/test", async (req, res) => {
+  try {
+    const clases = await Clase.find();
+    res.json(clases);
+  } catch (error) {
+    console.error("❌ Error al conectar con MongoDB:", error);
+    res.status(500).json({ mensaje: "Error al conectar con MongoDB" });
+  }
+});
+
+// 🔹 Obtener clases por docenteId (primero busca en Mongo, si no, usa las locales)
+router.get("/:docenteId", async (req, res) => {
+  const { docenteId } = req.params;
+
+  try {
+    // Buscar en MongoDB
+    const clasesDB = await Clase.find({ docenteId });
+    if (clasesDB.length > 0) {
+      return res.json(clasesDB);
+    }
+
+    // Si no hay datos en Mongo, usar las simuladas
+    const clasesLocales = clasesPorDocente[docenteId] || [];
+    return res.json(clasesLocales);
+  } catch (error) {
+    console.error("❌ Error al obtener clases:", error);
+    res.status(500).json({ mensaje: "Error al obtener clases" });
+  }
+});
+
+// ✅ Registrar asistencia (Mongo o simulado)
+router.post("/registrar", async (req, res) => {
+  const { docenteId, curso } = req.body;
+
+  if (!docenteId || !curso) {
+    return res.status(400).json({ mensaje: "Faltan datos (docenteId o curso)" });
+  }
+
+  try {
+    // Buscar y actualizar en MongoDB
+    const claseDB = await Clase.findOne({ docenteId, curso });
+    if (claseDB) {
+      claseDB.estado = "Dictada ✅";
+      await claseDB.save();
+      return res.json({ mensaje: `✅ Asistencia registrada para ${curso}`, claseActualizada: claseDB });
+    }
+
+    // Si no existe en Mongo, usar la simulada
+    const clases = clasesPorDocente[docenteId];
+    if (!clases) return res.status(404).json({ mensaje: "Docente no encontrado" });
+
+    const claseLocal = clases.find((c) => c.curso === curso);
+    if (!claseLocal) return res.status(404).json({ mensaje: "Clase no encontrada" });
+
+    claseLocal.estado = "Dictada ✅";
+    return res.json({ mensaje: `✅ Asistencia registrada para ${curso}`, claseActualizada: claseLocal });
+  } catch (error) {
+    console.error("❌ Error registrando asistencia:", error);
+    res.status(500).json({ mensaje: "Error al registrar asistencia" });
+  }
+});
+
+// ➕ Crear clase (solo Mongo)
+router.post("/crear", async (req, res) => {
+  try {
+    const { docenteId, curso, hora } = req.body;
+    const nuevaClase = new Clase({ docenteId, curso, hora });
+    await nuevaClase.save();
+    res.status(201).json({ mensaje: "Clase creada correctamente", nuevaClase });
+  } catch (error) {
+    console.error("❌ Error creando clase:", error);
+    res.status(500).json({ mensaje: "Error creando clase" });
+  }
+});
+
+export default router;

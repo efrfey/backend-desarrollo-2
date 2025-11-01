@@ -1,0 +1,1 @@
+# Frontend - Registro de Clases (React + Vite)\n\nRun:\ncd frontend\nnpm install\nnpm run dev\n

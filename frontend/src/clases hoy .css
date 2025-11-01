@@ -1,0 +1,48 @@
+.contenedor {
+  max-width: 700px;
+  margin: 20px auto;
+  padding: 15px;
+  font-family: Arial, sans-serif;
+}
+
+.busqueda {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+input[type="text"] {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 14px;
+}
+
+button {
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: none;
+  font-weight: bold;
+}
+
+button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.tabla-clases {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-clases th,
+.tabla-clases td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.btn-asistencia {
+  background-color: green;
+  color: white;
+}

@@ -1,0 +1,1 @@
+# Backend - Registro de Clases (Express + MongoDB Atlas)\n\nVer README en el zip.

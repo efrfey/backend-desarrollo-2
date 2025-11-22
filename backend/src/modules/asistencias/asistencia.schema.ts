@@ -3,20 +3,17 @@ import { Document } from 'mongoose';
 
 export type AsistenciaDocument = Asistencia & Document;
 
-@Schema({ collection: 'asistencias' })
+@Schema({ timestamps: true })
 export class Asistencia {
+  
+  @Prop({ required: true })
+  estudiante: string;
 
   @Prop({ required: true })
-  idDocente: string;
-
-  @Prop({ required: true })
-  idClase: string;
+  clase: string;
 
   @Prop()
-  materia: string;
-
-  @Prop()
-  fecha: Date;
+  docente: string;
 
   @Prop()
   horaInicio: string;
@@ -24,8 +21,12 @@ export class Asistencia {
   @Prop()
   horaFin: string;
 
-  @Prop({ default: false })
-  asistenciaRegistrada: boolean;
+  @Prop({ required: true })
+  fecha: string;
+
+  @Prop({ default: true })
+  presente: boolean;
 }
+
 
 export const AsistenciaSchema = SchemaFactory.createForClass(Asistencia);

@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type ClaseDocument = Clase & Document;
 
-@Schema({ collection: 'clases' })
+@Schema({ collection: 'horarios' })
 export class Clase {
   @Prop({ type: String, required: true, unique: true })
   idClase: string;

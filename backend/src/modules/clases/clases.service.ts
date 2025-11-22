@@ -11,13 +11,10 @@ export class ClasesService {
     @InjectModel(Incidencia.name) private incidenciaModel: Model<IncidenciaDocument>,
   ) {}
 
-  // Buscar clases por idDocente o cédula
+  // Buscar clases por idDocente
   async findByDocente(idDocente: string) {
     return this.claseModel.find({
-      $or: [
-        { idDocente: idDocente },
-        { cedula: Number(idDocente) },
-      ],
+      idDocente: idDocente
     })
     .sort({ fecha: 1 })
     .exec();
@@ -32,31 +29,24 @@ export class ClasesService {
     end.setHours(23, 59, 59, 999);
 
     return this.claseModel.find({
-      $and: [
-        {
-          $or: [
-            { idDocente: idDocente },
-            { cedula: Number(idDocente) },
-          ],
-        },
-        { fecha: { $gte: start, $lte: end } },
-      ],
+      idDocente: idDocente,
+      fecha: { $gte: start, $lte: end }
     }).exec();
   }
 
-  // Registrar asistencia en clases + incidencias
+  // Registrar asistencia
   async registerAsistencia(idClase: string) {
     const clase = await this.claseModel.findOne({ idClase });
 
     if (!clase) return null;
 
-    // Marcar asistencia dentro de la colección clases
+    // Marcar asistencia en colección clases
     await this.claseModel.findOneAndUpdate(
       { idClase },
       { asistenciaRegistrada: true }
     );
 
-    // Registrar asistencia dentro de incidencias
+    // Crear incidencia
     const nuevaIncidencia = new this.incidenciaModel({
       idClase: clase.idClase,
       idDocente: clase.idDocente,
